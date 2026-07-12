@@ -59,20 +59,24 @@ function useBreadcrumbs() {
  * Cascarón cliente de la intranet: monta los providers (tema, auth, sidebar)
  * y el chrome (sidebar + cabecera con breadcrumbs). Recibe el `user` ya
  * resuelto en el servidor para hidratar `AuthProvider` sin fetch en cliente.
- */
-export function IntranetShell({
-  user,
-  children,
-}: {
-  user: CurrentUser;
-  children: ReactNode;
-}) {
-  const breadcrumbs = useBreadcrumbs();
+ * */
+ export function IntranetShell({
+   user,
+   activeProfileId,
+   children,
+ }: {
+   user: CurrentUser;
+   activeProfileId: number | null;
+   children: ReactNode;
+ }) {
+   const breadcrumbs = useBreadcrumbs();
 
-  return (
-    <ThemeProvider>
-      <AuthProvider user={user}>
-        <SidebarProvider>
+   return (
+     <ThemeProvider>
+       <AuthProvider user={user} activeProfileId={activeProfileId}>
+         <SidebarProvider>
+ // ...
+
           <AppSidebar />
           <SidebarInset>
             <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-md transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">

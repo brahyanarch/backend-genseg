@@ -19,10 +19,11 @@ export default async function IntranetLayout({
   children: ReactNode;
 }) {
   const user = await authContainer.getCurrentUser.execute();
+  const session = await authContainer.getSession.execute();
 
   if (!user) {
     redirect("/login");
   }
 
-  return <IntranetShell user={user}>{children}</IntranetShell>;
+  return <IntranetShell user={user} activeProfileId={session?.activeProfileId ?? null}>{children}</IntranetShell>;
 }

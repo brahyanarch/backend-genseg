@@ -18,12 +18,14 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { switchProfileAction } from "@/app/actions/auth.actions";
+import type { Profile } from "@/modules/auth/domain/entities/profile";
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar();
-  const { user } = useAuth();
+  const { user, activeProfileId } = useAuth();
 
-  const activeProfile = user.profiles[0];
+  const activeProfile =
+    user.profiles.find((p: Profile) => p.id === activeProfileId) ?? user.profiles[0];
 
   if (!activeProfile) {
     return null;
@@ -65,7 +67,7 @@ export function TeamSwitcher() {
                 Perfiles
               </DropdownMenuLabel>
             </DropdownMenuGroup>
-            {user.profiles.map((profile) => (
+            {user.profiles.map((profile: Profile) => (
               <DropdownMenuItem
                 key={profile.id}
                 className="gap-2 p-2"

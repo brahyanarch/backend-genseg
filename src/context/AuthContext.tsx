@@ -8,6 +8,7 @@ import { logoutAction } from "@/app/actions/auth.actions";
 
 interface AuthContextValue {
   user: CurrentUser;
+  activeProfileId: number | null;
   hasPermission: (permissionName: string) => boolean;
   logout: () => void;
 }
@@ -33,21 +34,24 @@ export function useAuth(): AuthContextValue {
  */
 export function AuthProvider({
   user,
+  activeProfileId,
   children,
 }: {
   user: CurrentUser;
+  activeProfileId: number | null;
   children: ReactNode;
 }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
+      activeProfileId,
       hasPermission: (permissionName) => userHasPermission(user, permissionName),
       // El cierre de sesión limpia la cookie httpOnly en el servidor.
       logout: () => {
         void logoutAction();
       },
     }),
-    [user],
+    [user, activeProfileId],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
