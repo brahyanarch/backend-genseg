@@ -5,6 +5,7 @@ import { ChevronsUpDown, GalleryVerticalEnd } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
@@ -66,9 +67,11 @@ export function TeamSwitcher() {
             side={isMobile ? "bottom" : "right"}
             sideOffset={4}
           >
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Perfiles
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Perfiles
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             {user.profiles.map((profile) => (
               <DropdownMenuItem
                 key={profile.id}
