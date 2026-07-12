@@ -36,7 +36,7 @@ type NavItem = {
 export function NavMain({ items }: { items: NavItem[] }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Configuración</SidebarGroupLabel>
+      <SidebarGroupLabel>Administración</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <PermissionGuard

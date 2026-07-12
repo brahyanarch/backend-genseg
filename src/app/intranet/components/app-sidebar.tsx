@@ -6,6 +6,7 @@ import {
   Bot,
   Frame,
   PieChart,
+  Settings,
   Settings2,
   SquareTerminal,
 } from "lucide-react";
@@ -39,10 +40,33 @@ const data = {
   ],
   navMain: [
     {
+      title: "Configuración",
+      url: "#",
+      icon: Settings,
+      requiredPermission: "CONFIGURACION",
+      items: [
+        {
+          title: "Usuarios",
+          url: "/intranet/configuracion/usuarios",
+          requiredPermission: "VER_USUARIOS",
+        },
+        {
+          title: "Roles",
+          url: "/intranet/configuracion/roles",
+          requiredPermission: "VER_ROLES",
+        },
+        {
+          title: "Permisos",
+          url: "/intranet/configuracion/permisos",
+          requiredPermission: "VER_PERMISOS",
+        },
+      ],
+    },
+    {
       title: "Sub configuración",
       url: "#",
       icon: Settings2,
-      requiredPermission: "VER_SUBCONFIGURACION",
+      requiredPermission: "SUBCONFIGURACION",
       items: [
         {
           title: "Formulario",
@@ -50,14 +74,9 @@ const data = {
           requiredPermission: "VER_FORMULARIOS",
         },
         {
-          title: "Usuarios",
-          url: "/intranet/inicio/sub-configuracion/usuarios",
-          requiredPermission: "VER_USUARIOS",
-        },
-        {
           title: "Plantilla Documento",
           url: "/intranet/inicio/sub-configuracion/plantilla-documento",
-          requiredPermission: "VER_PLANILLA_DOCUMENTO",
+          requiredPermission: "VER_PLANTILLA_DOCUMENTO",
         },
       ],
     },
@@ -83,7 +102,7 @@ const data = {
       title: "Certificados",
       url: "#",
       icon: BookOpen,
-      requiredPermission: "VER_CERTIFICADOS",
+      requiredPermission: "CERTIFICADOS",
       items: [
         {
           title: "Alumnos",
@@ -106,7 +125,7 @@ const data = {
       title: "Planificación",
       url: "#",
       icon: SquareTerminal,
-      requiredPermission: "VER_PLANIFICACION",
+      requiredPermission: "PLANIFICACION",
       items: [
         {
           title: "Mis proyectos",
