@@ -75,8 +75,8 @@ export function IntranetShell({
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
-            <header className="flex h-16 shrink-0 items-center gap-2 bg-gray-100 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 dark:bg-gray-800">
-              <div className="flex items-center gap-2 px-4">
+            <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-md transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+              <div className="flex items-center gap-2">
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
                 <Breadcrumb>
@@ -87,9 +87,16 @@ export function IntranetShell({
                           className={index === 0 ? "hidden md:block" : ""}
                         >
                           {crumb.isLast ? (
-                            <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                            <BreadcrumbPage className="font-semibold text-foreground">
+                              {crumb.label}
+                            </BreadcrumbPage>
                           ) : (
-                            <Link href={crumb.href}>{crumb.label}</Link>
+                            <Link
+                              href={crumb.href}
+                              className="text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                              {crumb.label}
+                            </Link>
                           )}
                         </BreadcrumbItem>
                         {!crumb.isLast && (
@@ -102,7 +109,9 @@ export function IntranetShell({
               </div>
             </header>
 
-            <div className="p-5">{children}</div>
+            <main className="mx-auto w-full max-w-7xl p-6 md:p-8">
+              {children}
+            </main>
 
             <Toaster
               position="bottom-right"
