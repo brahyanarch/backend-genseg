@@ -13,3 +13,14 @@ export class AuthenticationUnavailableError extends Error {
     this.name = "AuthenticationUnavailableError";
   }
 }
+
+/**
+ * Error de dominio: el token existe pero el backend lo rechaza (401/403).
+ * Señala que la sesión debe limpiarse y el usuario volver a autenticarse.
+ */
+export class SessionExpiredError extends Error {
+  constructor(message = "La sesión expiró o no es válida") {
+    super(message);
+    this.name = "SessionExpiredError";
+  }
+}

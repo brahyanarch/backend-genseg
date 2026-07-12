@@ -4,6 +4,8 @@
 
 import type { User } from "../../domain/entities/user";
 import type { Profile } from "../../domain/entities/profile";
+import type { Permission } from "../../domain/entities/permission";
+import type { CurrentUser } from "../../domain/entities/current-user";
 import type { Credentials } from "../../domain/entities/credentials";
 
 export interface PerfilDTO {
@@ -65,5 +67,43 @@ export function toUser(dto: UserDTO): User {
     email: dto.email,
     name: dto.nombre,
     profiles: dto.perfiles.map(toProfile),
+  };
+}
+
+// --- Endpoint "quién soy" (/me) ---
+
+export interface PermisoDTO {
+  idPermiso: number;
+  cNombrePermiso: string;
+}
+
+export interface MeDataDTO {
+  idUser: number;
+  cEmail: string;
+  cNombre: string;
+  perfiles: PerfilDTO[];
+  permisos: PermisoDTO[];
+}
+
+export interface MeResponseDTO {
+  nSuccess: boolean;
+  data?: MeDataDTO;
+  message?: string;
+}
+
+function toPermission(dto: PermisoDTO): Permission {
+  return {
+    id: dto.idPermiso,
+    name: dto.cNombrePermiso,
+  };
+}
+
+export function toCurrentUser(data: MeDataDTO): CurrentUser {
+  return {
+    id: data.idUser,
+    email: data.cEmail,
+    name: data.cNombre,
+    profiles: data.perfiles.map(toProfile),
+    permissions: data.permisos.map(toPermission),
   };
 }

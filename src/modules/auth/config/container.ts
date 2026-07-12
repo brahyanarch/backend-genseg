@@ -1,11 +1,13 @@
 import "server-only";
 
 import { HttpAuthenticationAdapter } from "../infrastructure/http/http-authentication.adapter";
+import { HttpCurrentUserAdapter } from "../infrastructure/http/http-current-user.adapter";
 import { CookieSessionStoreAdapter } from "../infrastructure/cookie/cookie-session-store.adapter";
 import { LoginUseCase } from "../application/login.usecase";
 import { SelectProfileUseCase } from "../application/select-profile.usecase";
 import { LogoutUseCase } from "../application/logout.usecase";
 import { GetSessionUseCase } from "../application/get-session.usecase";
+import { GetCurrentUserUseCase } from "../application/get-current-user.usecase";
 
 /**
  * Composition root: cablea adaptadores concretos con los casos de uso.
@@ -18,6 +20,7 @@ function buildContainer() {
   }
 
   const authentication = new HttpAuthenticationAdapter(baseUrl);
+  const currentUser = new HttpCurrentUserAdapter(baseUrl);
   const sessionStore = new CookieSessionStoreAdapter();
 
   return {
@@ -25,6 +28,7 @@ function buildContainer() {
     selectProfile: new SelectProfileUseCase(authentication, sessionStore),
     logout: new LogoutUseCase(sessionStore),
     getSession: new GetSessionUseCase(sessionStore),
+    getCurrentUser: new GetCurrentUserUseCase(sessionStore, currentUser),
   };
 }
 
