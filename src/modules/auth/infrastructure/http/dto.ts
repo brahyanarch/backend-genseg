@@ -30,6 +30,11 @@ export interface LoginResponseDTO {
     user: UserDTO;
   };
   message?: string;
+  error?: {
+    cCode: string;
+    cMessage: string;
+    cTechnicalDetails: string;
+  };
 }
 
 export interface LoginRequestDTO {

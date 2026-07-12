@@ -5,6 +5,7 @@ import { HttpCurrentUserAdapter } from "../infrastructure/http/http-current-user
 import { CookieSessionStoreAdapter } from "../infrastructure/cookie/cookie-session-store.adapter";
 import { LoginUseCase } from "../application/login.usecase";
 import { SelectProfileUseCase } from "../application/select-profile.usecase";
+import { SwitchProfileUseCase } from "../application/switch-profile.usecase";
 import { LogoutUseCase } from "../application/logout.usecase";
 import { GetSessionUseCase } from "../application/get-session.usecase";
 import { GetCurrentUserUseCase } from "../application/get-current-user.usecase";
@@ -26,6 +27,7 @@ function buildContainer() {
   return {
     login: new LoginUseCase(authentication, sessionStore),
     selectProfile: new SelectProfileUseCase(authentication, sessionStore),
+    switchProfile: new SwitchProfileUseCase(authentication),
     logout: new LogoutUseCase(sessionStore),
     getSession: new GetSessionUseCase(sessionStore),
     getCurrentUser: new GetCurrentUserUseCase(sessionStore, currentUser),

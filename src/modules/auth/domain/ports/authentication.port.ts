@@ -15,4 +15,5 @@ export interface AuthenticationPort {
     credentials: Credentials,
     activeProfileId?: number,
   ): Promise<Authentication>;
+  switchProfile(profileId: number): Promise<void>;
 }

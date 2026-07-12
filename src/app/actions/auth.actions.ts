@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 import { authContainer } from "@/modules/auth/config/container";
 import {
@@ -59,6 +60,12 @@ export async function loginAction(
   // Fuera del try/catch: redirect() funciona lanzando una excepción interna.
   redirect("/intranet");
 }
+
+export async function switchProfileAction(profileId: number): Promise<void> {
+  await authContainer.switchProfile.execute(profileId);
+  revalidatePath("/intranet", "layout");
+}
+
 
 /** Server Action de cierre de sesión. */
 export async function logoutAction(): Promise<void> {

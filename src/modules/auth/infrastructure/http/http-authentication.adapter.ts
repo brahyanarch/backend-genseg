@@ -8,6 +8,7 @@ import {
   InvalidCredentialsError,
 } from "../../domain/errors";
 import { type LoginResponseDTO, toLoginRequestDTO, toUser } from "./dto";
+import { SESSION_COOKIE_NAME } from "../cookie/session-cookie.constants";
 
 /**
  * Adaptador HTTP del puerto de autenticación: habla con el backend real
@@ -46,5 +47,44 @@ export class HttpAuthenticationAdapter implements AuthenticationPort {
       token: body.data.token,
       user: toUser(body.data.user),
     };
+  }
+
+  async switchProfile(profileId: number): Promise<void> {
+    const { cookies } = await import("next/headers");
+    const token = (await cookies()).get("session")?.value;
+    // console.log("Token: ", token);
+    let res: Response;
+    try {
+      res = await fetch(`${this.baseUrl}/v1/auth/switch-profile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ idActiveProfile: profileId }),
+        cache: "no-store",
+      });
+    } catch {
+      throw new AuthenticationUnavailableError();
+    }
+
+    const body = (await res
+      .json()
+      .catch(() => null)) as LoginResponseDTO | null;
+
+    if (!res.ok || !body?.nSuccess || !body.data) {
+      throw new InvalidCredentialsError(
+        body?.error?.cMessage ?? "No se pudo cambiar el perfil",
+      );
+    }
+
+    // Persist new token
+    const { cookies: cookieStore } = await import("next/headers");
+    (await cookieStore()).set(SESSION_COOKIE_NAME, body.data.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+    });
   }
 }

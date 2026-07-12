@@ -17,15 +17,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
+import { switchProfileAction } from "@/app/actions/auth.actions";
 
-/**
- * Muestra el perfil (oficina + rol) del usuario y la lista de sus perfiles.
- *
- * NOTA: cambiar de perfil en caliente no está implementado. En esta
- * arquitectura el paso 2 del login vuelve a pedir credenciales, así que el
- * cambio requiere un server action dedicado (reautenticar con `idActiveProfile`
- * y regenerar la cookie). Por ahora solo se listan; el activo es el primero.
- */
 export function TeamSwitcher() {
   const { isMobile } = useSidebar();
   const { user } = useAuth();
@@ -77,6 +70,10 @@ export function TeamSwitcher() {
                 key={profile.id}
                 className="gap-2 p-2"
                 disabled={profile.id === activeProfile.id}
+                onClick={async () => {
+                  await switchProfileAction(profile.id);
+                  window.location.reload();
+                }}
               >
                 <div className="flex size-6 items-center justify-center rounded-sm border">
                   <GalleryVerticalEnd className="size-4" />
