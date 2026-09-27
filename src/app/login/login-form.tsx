@@ -6,11 +6,8 @@ import { loginAction } from "@/app/actions/auth.actions";
 import { initialLoginState } from "@/app/actions/auth.types";
 
 export function LoginForm() {
-  const [state, formAction, pending] = useActionState(
-    loginAction,
-    initialLoginState,
-  );
-
+  const [state, formAction, pending] = useActionState(loginAction,initialLoginState);
+  
   // Credenciales controladas: persisten entre el paso 1 y el paso 2
   // (el backend vuelve a pedir la contraseña al elegir perfil).
   const [email, setEmail] = useState("");
@@ -20,6 +17,9 @@ export function LoginForm() {
   const [forceCredentials, setForceCredentials] = useState(false);
 
   const selecting = state.status === "select" && !forceCredentials;
+  const message = state.status === "error" || state.status === "select"
+    ? state.message
+    : undefined;
 
   return (
     <form
@@ -29,14 +29,18 @@ export function LoginForm() {
     >
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold tracking-tight">
-          {selecting ? "Elige tu perfil" : "Iniciar sesión"}
+          {selecting ? "Elige cómo ingresar" : "Iniciar sesión"}
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           {selecting
-            ? "Tienes varios perfiles. Selecciona con cuál ingresar."
+            ? "Selecciona un perfil de oficina o un rol de sistema."
             : "Ingresa tus credenciales para continuar."}
         </p>
       </div>
+
+      {message && (
+        <p className="text-sm text-red-600 dark:text-red-400">{message}</p>
+      )}
 
       {selecting ? (
         <>
@@ -46,18 +50,20 @@ export function LoginForm() {
 
           <div className="flex flex-col gap-2">
             {state.status === "select" &&
-              state.profiles.map((profile) => (
+              state.options.map((option) => (
                 <button
-                  key={profile.id}
+                  key={option.kind === "office-profile" ? `profile-${option.profileId}` : `system-${option.assignmentId}`}
                   type="submit"
-                  name="idActiveProfile"
-                  value={profile.id}
+                  name={option.kind === "office-profile" ? "idActiveProfile" : "idActiveSystemAssignment"}
+                  value={option.kind === "office-profile" ? option.profileId : option.assignmentId}
                   disabled={pending}
                   className="flex flex-col items-start rounded-lg border border-black/10 px-4 py-3 text-left transition-colors hover:bg-black/[0.03] disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/[0.05]"
                 >
-                  <span className="font-medium">{profile.officeName}</span>
+                  <span className="font-medium">
+                    {option.kind === "office-profile" ? option.officeName : "Rol de sistema"}
+                  </span>
                   <span className="text-sm text-zinc-500 dark:text-zinc-400">
-                    {profile.roleName}
+                    {option.roleName}
                   </span>
                 </button>
               ))}
@@ -98,12 +104,6 @@ export function LoginForm() {
               className="rounded-lg border border-black/15 bg-transparent px-3 py-2 text-base outline-none focus:border-black/40 dark:border-white/15 dark:focus:border-white/40"
             />
           </label>
-
-          {state.status === "error" && (
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {state.message}
-            </p>
-          )}
 
           <button
             type="submit"

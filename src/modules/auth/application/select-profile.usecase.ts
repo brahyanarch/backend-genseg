@@ -1,12 +1,14 @@
-import type { AuthenticationPort } from "../domain/ports/authentication.port";
+import type {
+  AuthenticationPort,
+  AuthenticationSelection,
+} from "../domain/ports/authentication.port";
 import type { SessionStorePort } from "../domain/ports/session-store.port";
 import type { Credentials } from "../domain/entities/credentials";
 
 /**
- * Caso de uso: elegir un perfil activo (paso 2).
+ * Caso de uso: elegir una alternativa de autenticación (paso 2).
  *
- * Reautentica con las credenciales + `activeProfileId` para obtener el token
- * ligado a ese perfil y persiste la sesión.
+ * Reautentica con las credenciales y la selección elegida para obtener el token.
  */
 export class SelectProfileUseCase {
   constructor(
@@ -16,9 +18,9 @@ export class SelectProfileUseCase {
 
   async execute(
     credentials: Credentials,
-    activeProfileId: number,
+    selection: AuthenticationSelection,
   ): Promise<void> {
-    const { token } = await this.auth.authenticate(credentials, activeProfileId);
+    const { token } = await this.auth.authenticate(credentials, selection);
     await this.sessions.save(token);
   }
 }

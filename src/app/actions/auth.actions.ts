@@ -9,13 +9,13 @@ import {
   InvalidCredentialsError,
 } from "@/modules/auth/domain/errors";
 import type { LoginFormState } from "./auth.types";
+import type { ProfileSwitchSelection } from "@/modules/auth/domain/ports/authentication.port";
 
 /**
  * Server Action de login para `useActionState`.
  *
- * - Sin `idActiveProfile`: paso 1. Si hay varios perfiles devuelve el selector;
- *   si hay uno solo, inicia sesión y redirige.
- * - Con `idActiveProfile`: paso 2. Inicia sesión con ese perfil y redirige.
+ * - Without a selection: authenticate, then show choices when needed or redirect.
+ * - With a selected profile or system assignment: authenticate and redirect.
  */
 export async function loginAction(
   _prevState: LoginFormState,
@@ -24,26 +24,47 @@ export async function loginAction(
   const email = String(formData.get("cEmail") ?? "").trim();
   const password = String(formData.get("cPassword") ?? "");
   const rawProfile = formData.get("idActiveProfile");
+  const rawSystemAssignment = formData.get("idActiveSystemAssignment");
 
   if (!email || !password) {
     return { status: "error", message: "Ingresa tu correo y contraseña" };
   }
 
   const credentials = { email, password };
+  const profileId = rawProfile === null ? null : Number(rawProfile);
+  const systemAssignmentId = rawSystemAssignment === null
+    ? null
+    : Number(rawSystemAssignment);
 
   try {
-    if (rawProfile != null && rawProfile !== "") {
-      await authContainer.selectProfile.execute(credentials, Number(rawProfile));
+    if (profileId !== null) {
+      await authContainer.selectProfile.execute(credentials, {
+        kind: "office-profile",
+        id: profileId,
+      });
+    } else if (systemAssignmentId !== null) {
+      await authContainer.selectProfile.execute(credentials, {
+        kind: "system-assignment",
+        id: systemAssignmentId,
+      });
     } else {
       const result = await authContainer.login.execute(credentials);
       if (result.status === "profile-selection-required") {
         return {
           status: "select",
-          profiles: result.user.profiles.map((p) => ({
-            id: p.id,
-            roleName: p.roleName,
-            officeName: p.officeName,
-          })),
+          options: [
+            ...result.user.profiles.map((p) => ({
+              kind: "office-profile" as const,
+              profileId: p.id,
+              roleName: p.roleName,
+              officeName: p.officeName,
+            })),
+            ...result.user.systemRoleAssignments.map((assignment) => ({
+              kind: "system-role" as const,
+              assignmentId: assignment.assignmentId,
+              roleName: assignment.roleName,
+            })),
+          ],
         };
       }
     }
@@ -60,8 +81,8 @@ export async function loginAction(
   // Fuera del try/catch: redirect() funciona lanzando una excepción interna.
   redirect("/intranet");
 }
-export async function switchProfileAction(profileId: number): Promise<void> {
-  await authContainer.switchProfile.execute(profileId);
+export async function switchProfileAction(selection: ProfileSwitchSelection): Promise<void> {
+  await authContainer.switchProfile.execute(selection);
   revalidatePath("/intranet", "layout");
 }
 
@@ -98,14 +119,14 @@ export async function getUsersAction(
 }
 
 export async function updateProfileStatusAction(
-  userId: number,
+  profileId: number,
   lActivo: boolean
 ) {
   const { cookies } = await import("next/headers");
   const token = (await cookies()).get("session")?.value;
 
   const res = await fetch(
-    `${process.env.API_BASE_URL}/v1/auth/profiles/${userId}/status`,
+    `${process.env.API_BASE_URL}/v1/auth/profiles/${profileId}/status`,
     {
       method: "PATCH",
       headers: {

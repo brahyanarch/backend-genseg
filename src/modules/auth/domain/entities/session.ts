@@ -5,6 +5,7 @@
 export interface Session {
   token: string;
   activeProfileId: number | null;
+  activeSystemAssignmentId: number | null;
   expiresAt: Date | null;
 }
 

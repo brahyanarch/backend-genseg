@@ -22,12 +22,17 @@ import type { Profile } from "@/modules/auth/domain/entities/profile";
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar();
-  const { user, activeProfileId } = useAuth();
+  const { user, activeProfileId, activeSystemAssignmentId } = useAuth();
 
-  const activeProfile =
-    user.profiles.find((p: Profile) => p.id === activeProfileId) ?? user.profiles[0];
+  const activeProfile = activeProfileId === null
+    ? undefined
+    : user.profiles.find((p: Profile) => p.id === activeProfileId);
+  const activeSystemRole = user.systemRoleAssignments?.find(
+    (assignment) => assignment.assignmentId === activeSystemAssignmentId,
+  ) ?? (user.profiles.length === 0 ? user.systemRoleAssignments?.[0] : undefined);
+  const activeRole = activeProfile ?? activeSystemRole;
 
-  if (!activeProfile) {
+  if (!activeRole && user.profiles.length === 0 && !user.systemRoleAssignments?.length) {
     return null;
   }
 
@@ -48,10 +53,10 @@ export function TeamSwitcher() {
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-semibold">
-                {activeProfile.roleName}
+                {activeRole?.roleName ?? "Administrador"}
               </span>
               <span className="truncate text-xs">
-                {activeProfile.officeName}
+                {activeProfile ? `Oficina: ${activeProfile.officeName}` : "Rol del sistema"}
               </span>
             </div>
             <ChevronsUpDown className="ml-auto" />
@@ -64,17 +69,16 @@ export function TeamSwitcher() {
           >
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-xs text-muted-foreground">
-                Perfiles
+                Perfiles de oficina
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             {user.profiles.map((profile: Profile) => (
               <DropdownMenuItem
-                key={profile.id}
+                key={`profile-${profile.id}`}
                 className="gap-2 p-2"
-                disabled={profile.id === activeProfile.id}
+                disabled={profile.id === activeProfileId}
                 onClick={async () => {
-                  await switchProfileAction(profile.id);
-                  window.location.reload();
+                  await switchProfileAction({ kind: "office-profile", id: profile.id });
                 }}
               >
                 <div className="flex size-6 items-center justify-center rounded-sm border">
@@ -90,6 +94,36 @@ export function TeamSwitcher() {
                 </div>
               </DropdownMenuItem>
             ))}
+            {!!user.systemRoleAssignments?.length && (
+              <>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">
+                    Roles del sistema
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                {user.systemRoleAssignments.map((assignment) => (
+                  <DropdownMenuItem
+                    key={`system-${assignment.assignmentId}`}
+                    className="gap-2 p-2"
+                    disabled={assignment.assignmentId === activeSystemAssignmentId}
+                    onClick={async () => {
+                      await switchProfileAction({
+                        kind: "system-assignment",
+                        id: assignment.assignmentId,
+                      });
+                    }}
+                  >
+                    <div className="flex size-6 items-center justify-center rounded-sm border">
+                      <GalleryVerticalEnd className="size-4" />
+                    </div>
+                    <div className="grid leading-tight">
+                      <span className="truncate font-medium">{assignment.roleName}</span>
+                  <span className="truncate text-xs text-muted-foreground">Rol del sistema</span>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

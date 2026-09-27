@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/DataTable";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
@@ -25,6 +25,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 // Interfaces adaptadas del JSON
 interface UserProfile {
@@ -44,34 +45,46 @@ interface User {
   perfiles: UserProfile[];
 }
 
-function StatusToggle({ userId, profile, onToggle }: { userId: number; profile: UserProfile; onToggle: () => void }) {
+function StatusToggle({ profileId, profile, onToggle }: { profileId: number; profile: UserProfile; onToggle: (nextStatus: boolean) => void }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const submissionInProgress = useRef(false);
 
   const handleToggle = async () => {
+    if (submissionInProgress.current) return;
+
+    const previousStatus = profile.lActivo;
+    const nextStatus = !previousStatus;
+    submissionInProgress.current = true;
     setLoading(true);
+    onToggle(nextStatus);
     try {
-      await updateProfileStatusAction(userId, !profile.lActivo);
-      onToggle();
+      await updateProfileStatusAction(profileId, nextStatus);
       setOpen(false);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      onToggle(previousStatus);
+      toast.error("No se pudo actualizar el perfil", {
+        description: "El estado anterior fue restaurado. Revisá tu conexión e intentá nuevamente.",
+      });
     } finally {
+      submissionInProgress.current = false;
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(nextOpen) => {
+      if (!loading) setOpen(nextOpen);
+    }}>
       <PermissionGuard requiredPermission="DESACTIVAR_USUARIOS">
-        <DialogTrigger asChild>
+        <DialogTrigger render={
           <Button 
               variant="ghost" 
               size="sm" 
               className={cn("h-6 text-xs", profile.lActivo ? "text-red-600" : "text-green-600")}
-          >
+          />
+        }>
             {profile.lActivo ? "Desactivar" : "Activar"}
-          </Button>
         </DialogTrigger>
       </PermissionGuard>
       <DialogContent>
@@ -83,7 +96,7 @@ function StatusToggle({ userId, profile, onToggle }: { userId: number; profile: 
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
           <Button onClick={handleToggle} disabled={loading}>
             {loading ? "Procesando..." : "Confirmar"}
           </Button>
@@ -92,68 +105,6 @@ function StatusToggle({ userId, profile, onToggle }: { userId: number; profile: 
     </Dialog>
   );
 }
-
-const columns: ColumnDef<User>[] = [
-  { accessorKey: "cNombre", header: "Nombre" },
-  { accessorKey: "cEmail", header: "Email" },
-  {
-    accessorKey: "lActivo",
-    header: ({ column }) => (
-        <DataTableFacetedFilter
-            column={column}
-            title="Estado"
-            options={[
-              { label: "Activo", value: "true" },
-              { label: "Inactivo", value: "false" },
-            ]}
-        />
-    ),
-    cell: ({ row }) => (
-      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", row.original.lActivo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
-        {row.original.lActivo ? "Activo" : "Inactivo"}
-      </span>
-    ),
-  },
-  {
-    header: "Perfiles",
-    cell: ({ row }) => {
-      const perfiles = row.original.perfiles;
-      const userId = row.original.idUser;
-      return (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm">
-              Ver {perfiles.length} perfil(es)
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80">
-            <div className="flex flex-col gap-2">
-              <h4 className="font-semibold text-sm">Perfiles del usuario</h4>
-              {perfiles.map((p) => (
-                <div key={p.idProfile} className="flex items-center justify-between gap-2 text-xs bg-secondary p-2 rounded">
-                  <div className="flex flex-col">
-                    <span className="font-semibold">{p.cNombreRol}</span>
-                    <span className="text-muted-foreground">{p.cNombreOficina}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn("px-1.5 py-0.5 rounded text-[10px]", p.lActivo ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800")}>
-                      {p.lActivo ? "Activo" : "Inactivo"}
-                    </span>
-                    <StatusToggle 
-                      userId={userId} 
-                      profile={p} 
-                      onToggle={() => { /* Implementar refresh o re-fetch si necesario */ }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-      );
-    },
-  },
-];
 
 export default function UsuariosPage() {
   const router = useRouter();
@@ -172,7 +123,9 @@ export default function UsuariosPage() {
   const fetchData = useCallback(async () => {
     const page = pagination.pageIndex + 1;
     const json = await getUsersAction(page, pagination.pageSize, search, {
-        lActivo: lActivoFilter.length > 0 ? lActivoFilter.join(",") : undefined
+      ...(lActivoFilter.length > 0
+        ? { lActivo: lActivoFilter.join(",") }
+        : {}),
     });
     
     if (json.nSuccess) {
@@ -199,6 +152,74 @@ export default function UsuariosPage() {
     setLActivoFilter(lActivoFilter || []);
   };
 
+  const columns: ColumnDef<User>[] = [
+    { accessorKey: "cNombre", header: "Nombre" },
+    { accessorKey: "cEmail", header: "Email" },
+    {
+      accessorKey: "lActivo",
+      header: ({ column }) => (
+        <DataTableFacetedFilter
+          column={column}
+          title="Estado"
+          options={[
+            { label: "Activo", value: "true" },
+            { label: "Inactivo", value: "false" },
+          ]}
+        />
+      ),
+      cell: ({ row }) => (
+        <span className={cn("px-2 py-1 rounded-full text-xs font-medium", row.original.lActivo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
+          {row.original.lActivo ? "Activo" : "Inactivo"}
+        </span>
+      ),
+    },
+    {
+      header: "Perfiles",
+      cell: ({ row }) => {
+        const perfiles = row.original.perfiles;
+        return (
+          <Popover>
+            <PopoverTrigger render={<Button variant="outline" size="sm" />}>
+              Ver {perfiles.length} perfil(es)
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="flex flex-col gap-2">
+                <h4 className="font-semibold text-sm">Perfiles del usuario</h4>
+                {perfiles.map((p) => (
+                  <div key={p.idProfile} className="flex items-center justify-between gap-2 text-xs bg-secondary p-2 rounded">
+                    <div className="flex flex-col">
+                      <span className="font-semibold">{p.cNombreRol}</span>
+                      <span className="text-muted-foreground">{p.cNombreOficina}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={cn("px-1.5 py-0.5 rounded text-[10px]", p.lActivo ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800")}>
+                        {p.lActivo ? "Activo" : "Inactivo"}
+                      </span>
+                      <StatusToggle
+                        profileId={p.idProfile}
+                        profile={p}
+                        onToggle={(nextStatus) => {
+                          setData((currentData) => currentData.map((user) => ({
+                            ...user,
+                            perfiles: user.perfiles.map((profile) =>
+                              profile.idProfile === p.idProfile
+                                ? { ...profile, lActivo: nextStatus }
+                                : profile,
+                            ),
+                          })));
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-5">Gestión de Usuarios</h1>
@@ -215,7 +236,6 @@ export default function UsuariosPage() {
         pagination={pagination}
         onPaginationChange={setPagination}
         onColumnFiltersChange={handleColumnFiltersChange}
-        searchColumnId="cNombre"
       />
     </div>
   );

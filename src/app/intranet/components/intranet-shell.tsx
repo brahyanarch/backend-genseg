@@ -63,19 +63,25 @@ function useBreadcrumbs() {
  export function IntranetShell({
    user,
    activeProfileId,
+   activeSystemAssignmentId,
    children,
  }: {
    user: CurrentUser;
    activeProfileId: number | null;
+   activeSystemAssignmentId: number | null;
    children: ReactNode;
  }) {
    const breadcrumbs = useBreadcrumbs();
 
    return (
      <ThemeProvider>
-       <AuthProvider user={user} activeProfileId={activeProfileId}>
+      <AuthProvider
+        user={user}
+        activeProfileId={activeProfileId}
+        activeSystemAssignmentId={activeSystemAssignmentId}
+      >
          <SidebarProvider>
- // ...
+
 
           <AppSidebar />
           <SidebarInset>

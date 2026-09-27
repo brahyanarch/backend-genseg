@@ -1,11 +1,14 @@
-import { AuthenticationPort } from "../domain/ports/authentication.port";
+import type {
+  AuthenticationPort,
+  ProfileSwitchSelection,
+} from "../domain/ports/authentication.port";
 
 export class SwitchProfileUseCase {
   constructor(
     private readonly auth: AuthenticationPort,
   ) {}
 
-  async execute(profileId: number): Promise<void> {
-    await this.auth.switchProfile(profileId);
+  async execute(selection: ProfileSwitchSelection): Promise<void> {
+    await this.auth.switchProfile(selection);
   }
 }

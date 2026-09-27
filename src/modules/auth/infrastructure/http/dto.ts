@@ -2,11 +2,12 @@
 // mappers que traducen esos DTOs al modelo del dominio. Aislar esto aquí evita
 // que el resto de la app dependa de la forma exacta de la API.
 
-import type { User } from "../../domain/entities/user";
+import type { SystemRoleAssignment, User } from "../../domain/entities/user";
 import type { Profile } from "../../domain/entities/profile";
 import type { Permission } from "../../domain/entities/permission";
 import type { CurrentUser } from "../../domain/entities/current-user";
 import type { Credentials } from "../../domain/entities/credentials";
+import type { AuthenticationSelection } from "../../domain/ports/authentication.port";
 
 export interface PerfilDTO {
   idRol: number;
@@ -15,12 +16,25 @@ export interface PerfilDTO {
   cNombreOficina: string;
   idProfile: number;
   dExpiresAt: string | null;
+  lActivo?: boolean;
+  lVigente?: boolean;
+  cTipoRol?: string;
+}
+
+export interface AsignacionSistemaDTO {
+  idRol: number;
+  cNombreRol: string;
+  idAsignacionSistema: number;
+  lActivo?: boolean;
+  lVigente?: boolean;
+  cTipoRol?: string;
 }
 
 export interface UserDTO {
   email: string;
   nombre: string;
   perfiles: PerfilDTO[];
+  asignacionesSistema: AsignacionSistemaDTO[];
 }
 
 export interface LoginResponseDTO {
@@ -41,17 +55,21 @@ export interface LoginRequestDTO {
   cEmail: string;
   cPassword: string;
   idActiveProfile?: number;
+  idActiveSystemAssignment?: number;
 }
 
 export function toLoginRequestDTO(
   credentials: Credentials,
-  activeProfileId?: number,
+  selection?: AuthenticationSelection,
 ): LoginRequestDTO {
   return {
     cEmail: credentials.email,
     cPassword: credentials.password,
-    ...(activeProfileId !== undefined
-      ? { idActiveProfile: activeProfileId }
+    ...(selection?.kind === "office-profile"
+      ? { idActiveProfile: selection.id }
+      : {}),
+    ...(selection?.kind === "system-assignment"
+      ? { idActiveSystemAssignment: selection.id }
       : {}),
   };
 }
@@ -64,6 +82,22 @@ function toProfile(dto: PerfilDTO): Profile {
     officeId: dto.idOficina,
     officeName: dto.cNombreOficina,
     expiresAt: dto.dExpiresAt ? new Date(dto.dExpiresAt) : null,
+    ...(dto.lActivo !== undefined ? { isActive: dto.lActivo } : {}),
+    ...(dto.lVigente !== undefined ? { isValid: dto.lVigente } : {}),
+    ...(dto.cTipoRol !== undefined ? { roleType: dto.cTipoRol } : {}),
+  };
+}
+
+function toSystemRoleAssignment(
+  dto: AsignacionSistemaDTO,
+): SystemRoleAssignment {
+  return {
+    roleId: dto.idRol,
+    roleName: dto.cNombreRol,
+    assignmentId: dto.idAsignacionSistema,
+    ...(dto.lActivo !== undefined ? { isActive: dto.lActivo } : {}),
+    ...(dto.lVigente !== undefined ? { isValid: dto.lVigente } : {}),
+    ...(dto.cTipoRol !== undefined ? { roleType: dto.cTipoRol } : {}),
   };
 }
 
@@ -72,6 +106,7 @@ export function toUser(dto: UserDTO): User {
     email: dto.email,
     name: dto.nombre,
     profiles: dto.perfiles.map(toProfile),
+    systemRoleAssignments: dto.asignacionesSistema.map(toSystemRoleAssignment),
   };
 }
 
@@ -87,6 +122,11 @@ export interface MeDataDTO {
   cEmail: string;
   cNombre: string;
   perfiles: PerfilDTO[];
+  asignacionesSistema?: AsignacionSistemaDTO[];
+  contextoActivo?: {
+    tipo: string;
+    id: number;
+  };
   permisos: PermisoDTO[];
 }
 
@@ -109,6 +149,17 @@ export function toCurrentUser(data: MeDataDTO): CurrentUser {
     email: data.cEmail,
     name: data.cNombre,
     profiles: data.perfiles.map(toProfile),
+    ...(data.asignacionesSistema
+      ? { systemRoleAssignments: data.asignacionesSistema.map(toSystemRoleAssignment) }
+      : {}),
+    ...(data.contextoActivo
+      ? {
+          activeContext: {
+            type: data.contextoActivo.tipo,
+            id: data.contextoActivo.id,
+          },
+        }
+      : {}),
     permissions: data.permisos.map(toPermission),
   };
 }

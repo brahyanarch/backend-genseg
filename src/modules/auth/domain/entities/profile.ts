@@ -9,4 +9,7 @@ export interface Profile {
   officeId: number;
   officeName: string;
   expiresAt: Date | null;
+  isActive?: boolean;
+  isValid?: boolean;
+  roleType?: string;
 }

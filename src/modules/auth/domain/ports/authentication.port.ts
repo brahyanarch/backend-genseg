@@ -3,17 +3,25 @@ import type { Credentials } from "../entities/credentials";
 
 /**
  * Puerto de autenticación. La infraestructura lo implementa hablando con el
- * backend real. `activeProfileId` es opcional:
+ * backend real. La selección es opcional:
  *
- * - Sin él: paso 1, devuelve el usuario con sus perfiles (token sin perfil).
- * - Con él: paso 2, devuelve el token ligado al perfil activo.
+ * - Sin ella: paso 1, devuelve el usuario con sus opciones disponibles.
+ * - Con ella: paso 2, devuelve el token ligado al perfil o asignación elegida.
  *
  * Lanza `InvalidCredentialsError` si las credenciales no son válidas.
  */
 export interface AuthenticationPort {
   authenticate(
     credentials: Credentials,
-    activeProfileId?: number,
+    selection?: AuthenticationSelection,
   ): Promise<Authentication>;
-  switchProfile(profileId: number): Promise<void>;
+  switchProfile(selection: ProfileSwitchSelection): Promise<void>;
 }
+
+export type ProfileSwitchSelection =
+  | { kind: "office-profile"; id: number }
+  | { kind: "system-assignment"; id: number };
+
+export type AuthenticationSelection =
+  | { kind: "office-profile"; id: number }
+  | { kind: "system-assignment"; id: number };

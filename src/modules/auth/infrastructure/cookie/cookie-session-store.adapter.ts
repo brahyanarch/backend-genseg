@@ -38,6 +38,7 @@ export class CookieSessionStoreAdapter implements SessionStorePort {
     return {
       token,
       activeProfileId: payload?.idActiveProfile ?? null,
+      activeSystemAssignmentId: payload?.idActiveSystemAssignment ?? null,
       expiresAt: jwtExpiresAt(token),
     };
   }

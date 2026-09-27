@@ -6,8 +6,8 @@ import { requiresProfileSelection } from "../domain/entities/user";
 
 /**
  * Resultado del caso de uso de login (paso 1).
- * - `authenticated`: sesión ya persistida (el usuario tenía un único perfil).
- * - `profile-selection-required`: hay que elegir perfil antes de continuar.
+ * - `authenticated`: sesión ya persistida (había una única alternativa).
+ * - `profile-selection-required`: hay que elegir una alternativa.
  */
 export type LoginResult =
   | { status: "authenticated" }
@@ -16,9 +16,8 @@ export type LoginResult =
 /**
  * Caso de uso: iniciar sesión con correo y contraseña.
  *
- * Si el usuario tiene un solo perfil, lo selecciona automáticamente
- * (segunda llamada al backend) y persiste la sesión. Si tiene varios,
- * devuelve el usuario para que la UI muestre el selector de perfil.
+ * Si el usuario tiene una sola alternativa, la selecciona automáticamente.
+ * Si hay más de una, devuelve las opciones para que la UI las muestre.
  */
 export class LoginUseCase {
   constructor(
@@ -27,16 +26,41 @@ export class LoginUseCase {
   ) {}
 
   async execute(credentials: Credentials): Promise<LoginResult> {
-    const { user } = await this.auth.authenticate(credentials);
+    const { user, token: initialToken } = await this.auth.authenticate(credentials);
+
+    if (process.env.NODE_ENV === "development") {
+      console.info("[auth.login] authentication choices received", {
+        profileCount: user.profiles.length,
+        systemAssignmentCount: user.systemRoleAssignments.length,
+      });
+    }
 
     if (requiresProfileSelection(user)) {
+      if (process.env.NODE_ENV === "development") {
+        console.info("[auth.login] showing authentication choice selector");
+      }
       return { status: "profile-selection-required", user };
     }
 
-    // Un único perfil: seleccionarlo automáticamente para obtener el token
-    // ligado al perfil activo y persistir la sesión.
+    if (user.profiles.length + user.systemRoleAssignments.length === 0) {
+      await this.sessions.save(initialToken);
+      return { status: "authenticated" };
+    }
+
     const onlyProfile = user.profiles[0];
-    const { token } = await this.auth.authenticate(credentials, onlyProfile.id);
+    const onlyAssignment = user.systemRoleAssignments[0];
+    if (process.env.NODE_ENV === "development") {
+      console.info(
+        "[auth.login] selecting the only available authentication choice",
+        { kind: onlyProfile ? "office-profile" : "system-assignment" },
+      );
+    }
+    const { token } = await this.auth.authenticate(
+      credentials,
+      onlyProfile
+        ? { kind: "office-profile", id: onlyProfile.id }
+        : { kind: "system-assignment", id: onlyAssignment.assignmentId },
+    );
     await this.sessions.save(token);
 
     return { status: "authenticated" };

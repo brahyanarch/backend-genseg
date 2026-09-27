@@ -7,6 +7,7 @@ export interface JwtPayload {
   nId?: number;
   cEmail?: string;
   idActiveProfile?: number;
+  idActiveSystemAssignment?: number;
   iat?: number;
   /** Expiración en segundos (epoch). */
   exp?: number;

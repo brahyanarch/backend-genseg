@@ -1,5 +1,6 @@
 import type { Profile } from "./profile";
 import type { Permission } from "./permission";
+import type { SystemRoleAssignment } from "./user";
 
 /**
  * Usuario autenticado tal como lo describe el endpoint "quién soy" (`/me`),
@@ -11,6 +12,11 @@ export interface CurrentUser {
   email: string;
   name: string;
   profiles: Profile[];
+  systemRoleAssignments?: SystemRoleAssignment[];
+  activeContext?: {
+    type: string;
+    id: number;
+  };
   permissions: Permission[];
 }
 

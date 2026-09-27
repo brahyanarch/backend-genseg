@@ -40,29 +40,6 @@ const data = {
   ],
   navMain: [
     {
-      title: "Configuración",
-      url: "#",
-      icon: Settings,
-      requiredPermission: "CONFIGURACION",
-      items: [
-        {
-          title: "Usuarios",
-          url: "/intranet/configuracion/usuarios",
-          requiredPermission: "VER_USUARIOS",
-        },
-        {
-          title: "Roles",
-          url: "/intranet/configuracion/roles",
-          requiredPermission: "VER_ROLES",
-        },
-        {
-          title: "Permisos",
-          url: "/intranet/configuracion/permisos",
-          requiredPermission: "VER_PERMISOS",
-        },
-      ],
-    },
-    {
       title: "Sub configuración",
       url: "#",
       icon: Settings2,
@@ -77,6 +54,11 @@ const data = {
           title: "Plantilla Documento",
           url: "/intranet/inicio/sub-configuracion/plantilla-documento",
           requiredPermission: "VER_PLANTILLA_DOCUMENTO",
+        },
+        {
+          title: "Listar Usuarios",
+          url: "/intranet/configuracion/usuarios",
+          requiredPermission: "VER_USUARIOS",
         },
       ],
     },
@@ -140,6 +122,31 @@ const data = {
       ],
     },
   ],
+  adminNav: [
+    {
+      title: "Administración del sistema",
+      url: "#",
+      icon: Settings,
+      requiredPermission: "ACCESO_TOTAL_SISTEMA",
+      items: [
+        {
+          title: "Usuarios",
+          url: "/intranet/admin/usuarios",
+          requiredPermission: "ACCESO_TOTAL_SISTEMA",
+        },
+        {
+          title: "Roles",
+          url: "/intranet/admin/roles",
+          requiredPermission: "ACCESO_TOTAL_SISTEMA",
+        },
+        {
+          title: "Permisos",
+          url: "/intranet/admin/permisos",
+          requiredPermission: "ACCESO_TOTAL_SISTEMA",
+        },
+      ],
+    },
+  ],
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -151,6 +158,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavProjects projects={data.projects} />
         <NavMain items={data.navMain} />
+        <NavMain items={data.adminNav} label="ADMINISTRACION DE SISTEMA" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

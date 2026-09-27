@@ -7,8 +7,8 @@ import { SessionExpiredError } from "../domain/errors";
  * Caso de uso: obtener el usuario logueado (con sus permisos).
  *
  * Lee el token de la sesión persistida y lo canjea en el endpoint `/me`.
- * Si no hay sesión, o el backend rechaza el token, devuelve `null` (y limpia
- * la sesión inválida) para que la UI redirija al login.
+ * Si no hay sesión, o el backend rechaza el token, devuelve `null` para que la
+ * UI derive la limpieza a un límite que pueda modificar cookies.
  */
 export class GetCurrentUserUseCase {
   constructor(
@@ -26,7 +26,6 @@ export class GetCurrentUserUseCase {
       return await this.currentUser.getByToken(session.token);
     } catch (error) {
       if (error instanceof SessionExpiredError) {
-        await this.sessions.clear();
         return null;
       }
       throw error;

@@ -1,6 +1,10 @@
 import "server-only";
 
-import type { AuthenticationPort } from "../../domain/ports/authentication.port";
+import type {
+  AuthenticationPort,
+  AuthenticationSelection,
+  ProfileSwitchSelection,
+} from "../../domain/ports/authentication.port";
 import type { Authentication } from "../../domain/entities/session";
 import type { Credentials } from "../../domain/entities/credentials";
 import {
@@ -19,14 +23,14 @@ export class HttpAuthenticationAdapter implements AuthenticationPort {
 
   async authenticate(
     credentials: Credentials,
-    activeProfileId?: number,
+    selection?: AuthenticationSelection,
   ): Promise<Authentication> {
     let res: Response;
     try {
       res = await fetch(`${this.baseUrl}/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toLoginRequestDTO(credentials, activeProfileId)),
+        body: JSON.stringify(toLoginRequestDTO(credentials, selection)),
         cache: "no-store",
       });
     } catch {
@@ -49,10 +53,9 @@ export class HttpAuthenticationAdapter implements AuthenticationPort {
     };
   }
 
-  async switchProfile(profileId: number): Promise<void> {
+  async switchProfile(selection: ProfileSwitchSelection): Promise<void> {
     const { cookies } = await import("next/headers");
     const token = (await cookies()).get("session")?.value;
-    // console.log("Token: ", token);
     let res: Response;
     try {
       res = await fetch(`${this.baseUrl}/v1/auth/switch-profile`, {
@@ -61,7 +64,11 @@ export class HttpAuthenticationAdapter implements AuthenticationPort {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify({ idActiveProfile: profileId }),
+        body: JSON.stringify(
+          selection.kind === "office-profile"
+            ? { idActiveProfile: selection.id }
+            : { idActiveSystemAssignment: selection.id },
+        ),
         cache: "no-store",
       });
     } catch {

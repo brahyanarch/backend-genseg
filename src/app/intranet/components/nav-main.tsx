@@ -33,10 +33,16 @@ type NavItem = {
   }[];
 };
 
-export function NavMain({ items }: { items: NavItem[] }) {
+export function NavMain({
+  items,
+  label = "Administración",
+}: {
+  items: NavItem[];
+  label?: string;
+}) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Administración</SidebarGroupLabel>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <PermissionGuard
