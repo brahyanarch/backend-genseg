@@ -118,6 +118,79 @@ export async function getUsersAction(
   return res.json();
 }
 
+export async function getInvitationRolesAction() {
+  const { cookies } = await import("next/headers");
+  const token = (await cookies()).get("session")?.value;
+
+  if (!token || !process.env.API_BASE_URL) {
+    return { success: false as const, roles: [] };
+  }
+
+  try {
+    const res = await fetch(
+      `${process.env.API_BASE_URL}/v1/access-control/roles`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) return { success: false as const, roles: [] };
+
+    const json = await res.json();
+    if (!json.nSuccess || !Array.isArray(json.data?.roles)) {
+      return { success: false as const, roles: [] };
+    }
+
+    return {
+      success: true as const,
+      roles: json.data.roles
+        .filter((role: { lActivo?: boolean; lVigente?: boolean }) => role.lActivo && role.lVigente)
+        .map((role: { idRol: number; cNombreRol: string }) => ({
+          idRol: role.idRol,
+          cNombreRol: role.cNombreRol,
+        })),
+    };
+  } catch {
+    return { success: false as const, roles: [] };
+  }
+}
+
+export async function createInvitationAction(cEmail: string, idRol: number) {
+  const email = cEmail.trim();
+  if (!email || !Number.isInteger(idRol) || idRol <= 0) {
+    return { success: false as const, message: "Ingresa un email y selecciona un rol válido." };
+  }
+
+  const { cookies } = await import("next/headers");
+  const token = (await cookies()).get("session")?.value;
+  if (!token || !process.env.API_BASE_URL) {
+    return { success: false as const, message: "No se pudo enviar la invitación. Iniciá sesión nuevamente." };
+  }
+
+  try {
+    const res = await fetch(
+      `${process.env.API_BASE_URL}/v1/auth/invitaciones`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ cEmail: email, idRol }),
+        cache: "no-store",
+      },
+    );
+    const json = await res.json();
+    if (!res.ok || json.nSuccess !== true) {
+      return { success: false as const, message: "No se pudo enviar la invitación. Revisá los datos e intentá nuevamente." };
+    }
+
+    return { success: true as const };
+  } catch {
+    return { success: false as const, message: "No se pudo conectar con el servidor. Intentá nuevamente." };
+  }
+}
+
 export async function updateProfileStatusAction(
   profileId: number,
   lActivo: boolean

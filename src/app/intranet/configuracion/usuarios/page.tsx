@@ -4,7 +4,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/DataTable";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
-import { getUsersAction, updateProfileStatusAction } from "@/app/actions/auth.actions";
+import {
+  createInvitationAction,
+  getInvitationRolesAction,
+  getUsersAction,
+  updateProfileStatusAction,
+} from "@/app/actions/auth.actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -43,6 +48,11 @@ interface User {
   cNombre: string;
   lActivo: boolean;
   perfiles: UserProfile[];
+}
+
+interface InvitationRole {
+  idRol: number;
+  cNombreRol: string;
 }
 
 function StatusToggle({ profileId, profile, onToggle }: { profileId: number; profile: UserProfile; onToggle: (nextStatus: boolean) => void }) {
@@ -119,6 +129,54 @@ export default function UsuariosPage() {
   });
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [lActivoFilter, setLActivoFilter] = useState<string[]>(searchParams.getAll("lActivo"));
+  const [invitationOpen, setInvitationOpen] = useState(false);
+  const [invitationEmail, setInvitationEmail] = useState("");
+  const [invitationRoleId, setInvitationRoleId] = useState("");
+  const [invitationRoles, setInvitationRoles] = useState<InvitationRole[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [invitationLoading, setInvitationLoading] = useState(false);
+  const [invitationError, setInvitationError] = useState("");
+  const [invitationSent, setInvitationSent] = useState(false);
+
+  const openInvitationDialog = async (open: boolean) => {
+    setInvitationOpen(open);
+    if (!open) return;
+
+    setInvitationEmail("");
+    setInvitationRoleId("");
+    setInvitationError("");
+    setInvitationSent(false);
+    setRolesLoading(true);
+    const result = await getInvitationRolesAction();
+    if (result.success) {
+      setInvitationRoles(result.roles);
+      if (result.roles.length === 0) {
+        setInvitationError("No hay roles activos y vigentes disponibles.");
+      }
+    } else {
+      setInvitationRoles([]);
+      setInvitationError("No se pudieron cargar los roles. Cerrá el diálogo e intentá nuevamente.");
+    }
+    setRolesLoading(false);
+  };
+
+  const submitInvitation = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!invitationEmail.trim() || !invitationRoleId) {
+      setInvitationError("Ingresá un email y seleccioná un rol.");
+      return;
+    }
+
+    setInvitationLoading(true);
+    setInvitationError("");
+    const result = await createInvitationAction(invitationEmail, Number(invitationRoleId));
+    if (result.success) {
+      setInvitationSent(true);
+    } else {
+      setInvitationError(result.message);
+    }
+    setInvitationLoading(false);
+  };
 
   const fetchData = useCallback(async () => {
     const page = pagination.pageIndex + 1;
@@ -222,7 +280,66 @@ export default function UsuariosPage() {
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-5">Gestión de Usuarios</h1>
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
+        <Button onClick={() => void openInvitationDialog(true)}>Nuevo usuario</Button>
+      </div>
+      <Dialog open={invitationOpen} onOpenChange={(open) => {
+        if (!invitationLoading) void openInvitationDialog(open);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invitar nuevo usuario</DialogTitle>
+            <DialogDescription>Enviaremos una invitación al correo indicado.</DialogDescription>
+          </DialogHeader>
+          {invitationSent ? (
+            <p role="status" className="text-sm text-green-700">La invitación se envió correctamente.</p>
+          ) : (
+            <form onSubmit={submitInvitation} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <label htmlFor="invitation-email" className="font-medium">Email</label>
+                <Input
+                  id="invitation-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={invitationEmail}
+                  onChange={(event) => setInvitationEmail(event.target.value)}
+                  disabled={invitationLoading}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label htmlFor="invitation-role" className="font-medium">Rol</label>
+                <select
+                  id="invitation-role"
+                  required
+                  value={invitationRoleId}
+                  onChange={(event) => setInvitationRoleId(event.target.value)}
+                  disabled={rolesLoading || invitationLoading || invitationRoles.length === 0}
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">{rolesLoading ? "Cargando roles..." : "Seleccioná un rol"}</option>
+                  {invitationRoles.map((role) => (
+                    <option key={role.idRol} value={role.idRol}>{role.cNombreRol}</option>
+                  ))}
+                </select>
+              </div>
+              {invitationError && <p role="alert" className="text-sm text-destructive">{invitationError}</p>}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => void openInvitationDialog(false)} disabled={invitationLoading}>Cancelar</Button>
+                <Button type="submit" disabled={rolesLoading || invitationLoading || invitationRoles.length === 0}>
+                  {invitationLoading ? "Enviando..." : "Enviar invitación"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+          {invitationSent && (
+            <DialogFooter>
+              <Button onClick={() => void openInvitationDialog(false)}>Cerrar</Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
       <Input
         placeholder="Buscar por nombre o email..."
         value={search}
